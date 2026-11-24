@@ -8,15 +8,18 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Tries each configured provider in order and falls through to the next one on any
- * failure (no network, quota used up, bad key). Call from a background thread.
+ * Tries each configured provider in order. Inside a provider it tries the chosen model first, then the
+ * next models in its list. A bad key skips the provider, a dead model or rate limit moves to the next model.
+ * Call from a background thread.
  */
 object AiRouter {
-    const val SYSTEM = "You are JARVIS, a concise voice assistant running on an Android phone. " +
-        "Reply in the same language the user writes in. Keep answers short and easy to speak aloud. " +
-        "Do not use markdown, lists or emojis."
+    const val SYSTEM = "You are JARVIS, a concise, polite voice assistant running on an Android phone. " +
+        "Reply in the same language the user writes in; if they write Arabic, answer in Egyptian-friendly Arabic. " +
+        "Keep answers short and easy to speak aloud. Do not use markdown, lists or emojis."
 
     data class Turn(val role: String, val text: String) // role: "user" or "assistant"
+
+    class HttpEx(val code: Int) : Exception("HTTP $code")
 
     fun hasAnyKey(ctx: Context): Boolean {
         val p = Prefs(ctx)
@@ -35,23 +38,37 @@ object AiRouter {
             if (name == "custom") {
                 if (prefs.get("base_custom").isBlank()) continue
             } else if (key.isBlank()) continue
-            try {
-                val reply = if (name == "gemini") gemini(prefs, key, history)
-                else openAi(prefs, name, key, history)
-                if (reply.isNotBlank()) return Result.success(reply.trim())
-            } catch (e: Exception) {
-                lastErr = "$name: ${e.message}"
+            for (model in modelsFor(prefs, name)) {
+                try {
+                    val reply = if (name == "gemini") gemini(model, key, history)
+                    else openAi(prefs, name, model, key, history)
+                    if (reply.isNotBlank()) return Result.success(reply.trim())
+                } catch (e: HttpEx) {
+                    lastErr = "$name/$model: HTTP ${e.code}"
+                    if (e.code == 401 || e.code == 403) break
+                } catch (e: Exception) {
+                    lastErr = "$name: ${e.message}"
+                    break
+                }
             }
         }
         return Result.failure(Exception(lastErr))
     }
 
-    private fun post(url: String, headers: Map<String, String>, body: String): String {
+    private fun modelsFor(prefs: Prefs, name: String): List<String> {
+        if (name == "custom") return listOf(prefs.get("model_custom")).filter { it.isNotBlank() }
+        val chosen = prefs.get("model_$name", "auto")
+        val pool = ModelCatalog.candidates(prefs, name)
+        val list = if (chosen.isNotBlank() && chosen != "auto") listOf(chosen) + pool else pool
+        return list.distinct().take(4)
+    }
+
+    internal fun post(url: String, headers: Map<String, String>, body: String): String {
         val c = URL(url).openConnection() as HttpURLConnection
         try {
             c.requestMethod = "POST"
             c.connectTimeout = 8000
-            c.readTimeout = 30000
+            c.readTimeout = 40000
             c.doOutput = true
             c.setRequestProperty("Content-Type", "application/json")
             headers.forEach { (k, v) -> c.setRequestProperty(k, v) }
@@ -59,16 +76,15 @@ object AiRouter {
             val code = c.responseCode
             val stream = if (code in 200..299) c.inputStream else c.errorStream
             val text = stream?.bufferedReader()?.use { it.readText() } ?: ""
-            if (code !in 200..299) throw Exception("HTTP $code")
+            if (code !in 200..299) throw HttpEx(code)
             return text
         } finally {
             c.disconnect()
         }
     }
 
-    private fun openAi(prefs: Prefs, name: String, key: String, history: List<Turn>): String {
+    private fun openAi(prefs: Prefs, name: String, model: String, key: String, history: List<Turn>): String {
         val base = (if (name == "custom") prefs.get("base_custom") else Prefs.baseUrl(name)).trimEnd('/')
-        val model = prefs.get("model_$name", Prefs.defaultModel(name))
         val msgs = JSONArray().put(JSONObject().put("role", "system").put("content", SYSTEM))
         history.forEach { msgs.put(JSONObject().put("role", it.role).put("content", it.text)) }
         val body = JSONObject().put("model", model).put("messages", msgs).toString()
@@ -78,8 +94,7 @@ object AiRouter {
             .getJSONObject("message").getString("content")
     }
 
-    private fun gemini(prefs: Prefs, key: String, history: List<Turn>): String {
-        val model = prefs.get("model_gemini", Prefs.defaultModel("gemini"))
+    private fun gemini(model: String, key: String, history: List<Turn>): String {
         val contents = JSONArray()
         history.forEach {
             contents.put(

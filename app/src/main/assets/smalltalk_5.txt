@@ -1,0 +1,11 @@
+استنى;لحظه;استنى لحظه;ثواني#hold on;wait;wait a second;one moment;give me a second#خد وقتك، انا مستنيك.|براحتك يا فندم.|تمام، مستعد لما تكون جاهز.#Take your time, sir.|Of course. I will wait.|Whenever you are ready.
+يلا;يلا بينا;نبدأ#let us go;lets go;come on;lets begin;shall we#يلا يا فندم.|ماشي، ابدأ.|جاهز.#Right behind you, sir.|Ready when you are.|Let us begin.
+انت متاكد;متاكد;بجد متاكد#are you sure;you sure;are you certain#متاكد بقدر المعلومات اللي معايا، وراجع المهم.|ايوه، بس ماتعتمدش عليا في الحاجات الحساسة.|غالبا، بس لو الموضوع مهم تاكد منه.#As sure as I can be. For anything important, double-check.|Fairly sure, though I can be wrong.|I believe so, sir.
+انت فين;فين انت;انت هنا فين#where are you;where did you go;where have you been#موجود وفي الخدمة.|جنبك، في الموبايل.|انا هنا، اؤمرني.#Right here, sir.|In your phone, as always.|Present and attentive.
+اسمعني;ركز معايا;انتبه ليا#listen to me;listen;pay attention;focus#سامعك، تفضل.|انا معاك بكل تركيز.|اتفضل.#I am listening.|All ears, sir.|Go ahead.
+عايز منك خدمه;ممكن خدمة;عندي طلب#can i ask a favor;i need a favor;i have a request#طبعا، اؤمرني.|تحت امرك، ايه هو؟|اتفضل.#Of course. What is it?|Certainly, sir.|Name it.
+شكرا علي المساعده;شكرا علي مساعدتك;تسلم ايدك#thanks for the help;thank you for your help;thanks for helping#ده واجبي يا فندم.|العفو، سعيد اني ساعدت.|في الخدمة دايما.#It was my pleasure, sir.|Glad I could help.|Always at your service.
+انت ظريف;انت دمك خفيف;انت مضحك#you are funny;you are hilarious;you are witty#ده من ذوقك.|شكرا، بحاول.|حلو انك مبسوط.#Thank you, I try.|You are too kind.|Glad you enjoy it.
+انا واثق فيك;واثق فيك;بثق فيك#i trust you;i have faith in you;i rely on you#ثقتك شرف ليا.|هبذل اقصى جهدي.|ماتقلقش.#Your trust is an honour.|I will do my best, sir.|I will not let you down.
+ماتقلقش;خلي بالك;متقلقش#do not worry;dont worry;no worries;relax#مطمن، كله تحت السيطرة.|ان شاء الله خير.|ماشي يا فندم.#All under control, sir.|Everything will be fine.|Understood.
+بتتكلم مصري;تعرف مصري;تعرف تتكلم عامية#do you speak egyptian;can you speak egyptian arabic;do you know egyptian dialect#طبعا، بتكلم مصري وفصحى كمان.|ايوه، اكلمك مصري براحتك.|اه اكيد، ازاي مش هتكلم بلغة بلدي.#I understand Egyptian Arabic.|Yes, Egyptian is fine.|I can follow it, sir.

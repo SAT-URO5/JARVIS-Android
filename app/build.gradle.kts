@@ -11,9 +11,23 @@ android {
         applicationId = "com.jarvis.mark"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
     }
+    // Fixed key so every new build installs over the old one and keeps your settings.
+    // Decoded from ci/jarvis-debug.keystore.b64 by the GitHub workflow.
+    signingConfigs {
+        getByName("debug") {
+            val ks = file("jarvis-debug.keystore")
+            if (ks.exists()) {
+                storeFile = ks
+                storePassword = "jarvis123"
+                keyAlias = "jarvis"
+                keyPassword = "jarvis123"
+            }
+        }
+    }
+
     buildTypes {
         release { isMinifyEnabled = false }
     }

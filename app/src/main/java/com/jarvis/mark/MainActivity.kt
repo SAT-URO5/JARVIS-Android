@@ -15,6 +15,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.jarvis.mark.ai.AiRouter
 import com.jarvis.mark.commands.CommandEngine
+import com.jarvis.mark.voice.CloudStt
 import com.jarvis.mark.voice.Speaker
 
 class MainActivity : AppCompatActivity() {
@@ -28,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnLang: TextView
     private lateinit var btnMic: ImageButton
     private lateinit var speaker: Speaker
+    private lateinit var cloud: CloudStt
 
     private var recognizer: SpeechRecognizer? = null
     private var listening = false
@@ -46,6 +48,7 @@ class MainActivity : AppCompatActivity() {
         btnMic = findViewById(R.id.btnMic)
 
         speaker = Speaker(this, prefs)
+        cloud = CloudStt(this, prefs)
         speaker.onStart = { runOnUiThread { reactor.state = ReactorView.State.SPEAKING; status.text = "SPEAKING" } }
         speaker.onDone = { runOnUiThread { reactor.state = ReactorView.State.IDLE; status.text = "READY" } }
 
@@ -110,6 +113,8 @@ class MainActivity : AppCompatActivity() {
         }
         val local = try { CommandEngine.run(this, text) } catch (e: Exception) { null }
         if (local != null) { reply(local); return }
+        val chat = SmallTalk.reply(this, text)
+        if (chat != null) { reply(chat); return }
 
         reactor.state = ReactorView.State.THINKING
         status.text = "THINKING"
@@ -142,8 +147,11 @@ class MainActivity : AppCompatActivity() {
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 1)
             return
         }
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            log("SYSTEM", "This phone has no speech-recognition engine. You can type instead. An offline engine is planned for the next version.")
+        val mode = prefs.get("stt_mode", "auto")
+        val systemOk = SpeechRecognizer.isRecognitionAvailable(this)
+        if (mode == "groq" || (mode == "auto" && !systemOk)) { startCloud(); return }
+        if (!systemOk) {
+            log("SYSTEM", "This phone has no speech-recognition engine. Set Speech engine to groq in Settings, or type.")
             return
         }
         speaker.stop()
@@ -165,7 +173,8 @@ class MainActivity : AppCompatActivity() {
                 reactor.state = ReactorView.State.IDLE
                 status.text = "READY"
                 if (error != SpeechRecognizer.ERROR_NO_MATCH && error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-                    log("SYSTEM", "Speech recognition error $error.")
+                    if (prefs.get("stt_mode", "auto") == "auto" && prefs.get("key_groq").isNotBlank()) startCloud()
+                    else log("SYSTEM", "Speech recognition error $error.")
                 }
             }
             override fun onResults(results: Bundle?) {
@@ -184,7 +193,26 @@ class MainActivity : AppCompatActivity() {
         sr.startListening(i)
     }
 
+    private fun startCloud() {
+        if (prefs.get("key_groq").isBlank()) {
+            log("SYSTEM", "No speech engine on this phone. Add a free Groq key in Settings (console.groq.com) so I can hear you, or type.")
+            return
+        }
+        speaker.stop()
+        listening = true
+        reactor.state = ReactorView.State.LISTENING
+        status.text = "LISTENING"
+        cloud.start { text, err ->
+            listening = false
+            reactor.state = ReactorView.State.IDLE
+            status.text = "READY"
+            if (err != null) log("SYSTEM", err)
+            else if (!text.isNullOrBlank()) handle(text)
+        }
+    }
+
     private fun stopListening() {
+        if (cloud.active) { cloud.stopNow(); return }
         recognizer?.stopListening()
         listening = false
         reactor.state = ReactorView.State.IDLE
@@ -198,6 +226,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         recognizer?.destroy()
+        cloud.release()
         speaker.shutdown()
         super.onDestroy()
     }
